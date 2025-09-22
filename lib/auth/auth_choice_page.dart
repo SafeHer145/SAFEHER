@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'otp_login_page.dart';
 import 'login_page.dart';
+import '../screens/onboarding/tutorial_screen.dart';
+import '../l10n/app_localizations.dart';
+import '../localization/locale_controller.dart';
 
 class AuthChoicePage extends StatelessWidget {
   const AuthChoicePage({super.key});
@@ -64,7 +67,7 @@ class AuthChoicePage extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Choose your login method',
+                        AppLocalizations.of(context)!.chooseLoginMethod,
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           color: Colors.white.withValues(alpha: 0.9),
@@ -116,7 +119,7 @@ class AuthChoicePage extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Login with Phone Number',
+                              AppLocalizations.of(context)!.loginWithPhone,
                               style: GoogleFonts.poppins(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -165,7 +168,7 @@ class AuthChoicePage extends StatelessWidget {
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Login with Email',
+                              AppLocalizations.of(context)!.loginWithEmail,
                               style: GoogleFonts.poppins(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -180,7 +183,37 @@ class AuthChoicePage extends StatelessWidget {
                 ),
                 
                 const SizedBox(height: 40),
-                
+
+                // View Instructions (Tutorial) Button
+                FadeInUp(
+                  duration: const Duration(milliseconds: 800),
+                  delay: const Duration(milliseconds: 500),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.white),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TutorialScreen()),
+                        );
+                      },
+                      icon: const Icon(Icons.menu_book_outlined),
+                      label: Text(
+                        AppLocalizations.of(context)!.viewInstructions,
+                        style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
                 // Info Text
                 FadeInUp(
                   duration: const Duration(milliseconds: 800),
@@ -212,9 +245,53 @@ class AuthChoicePage extends StatelessWidget {
                     ),
                   ),
                 ),
+
+                const SizedBox(height: 20),
+
+                // Language selector
+                FadeInUp(
+                  duration: const Duration(milliseconds: 800),
+                  delay: const Duration(milliseconds: 650),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _LangChip(label: 'EN', onTap: () => LocaleController.instance.setLocale(const Locale('en'))),
+                      const SizedBox(width: 8),
+                      _LangChip(label: 'हिं', onTap: () => LocaleController.instance.setLocale(const Locale('hi'))),
+                      const SizedBox(width: 8),
+                      _LangChip(label: 'తెలు', onTap: () => LocaleController.instance.setLocale(const Locale('te'))),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LangChip extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _LangChip({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600),
         ),
       ),
     );

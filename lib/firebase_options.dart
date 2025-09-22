@@ -53,11 +53,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDummy_Android_Key_Replace_With_Real',
-    appId: '1:123456789:android:dummy',
-    messagingSenderId: '123456789',
+    apiKey: 'AIzaSyB7uaTe88FCqy4yhm7TfstohygQxV_Ns00',
+    appId: '1:871371292484:android:8eb274ebf3d0563d4ee111',
+    messagingSenderId: '871371292484',
     projectId: 'safeher-g546',
-    storageBucket: 'safeher-g546.appspot.com',
+    storageBucket: 'safeher-g546.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(

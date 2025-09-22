@@ -319,6 +319,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
       await _smsService.sendVerificationSMS(
         contact['phone'],
         contact['name'],
+        otp: otp,
       );
       
       // Update contact with OTP in Firestore
@@ -332,7 +333,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
         'otpSentAt': FieldValue.serverTimestamp(),
       });
 
-      // Show verification dialog
+      // Show verification dialog/information
       if (mounted) {
         _showVerificationDialog(context, contact, otp);
       }
@@ -356,9 +357,25 @@ class _ContactsScreenState extends State<ContactsScreen> {
       }
     }
   }
-        );
-      }
-    }
+
+  void _showVerificationDialog(BuildContext context, Map<String, dynamic> contact, String otp) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Verification Sent'),
+        content: Text(
+          'An OTP has been sent to ${contact['name']} (${contact['phone']}).\n\n'
+          'Ask them to share the code with you so you can verify this contact.\n\n'
+          'For testing, OTP: $otp',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _deleteContact(String contactId, String name) {

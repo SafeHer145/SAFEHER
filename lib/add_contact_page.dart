@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'services/sms_service.dart';
+import 'services/sms_service_simple.dart';
 import 'widgets/otp_verification_dialog.dart';
 
 class AddContactPage extends StatefulWidget {
@@ -15,7 +15,7 @@ class _AddContactPageState extends State<AddContactPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final SMSService _smsService = SMSService();
+  final SMSServiceSimple _smsService = SMSServiceSimple();
   bool _isLoading = false;
 
   Future<void> _saveContact() async {
@@ -92,25 +92,15 @@ class _AddContactPageState extends State<AddContactPage> {
 
         // Generate verification OTP and send SMS
         String verificationOTP = _smsService.generateOTP();
-        print('🔢 DEBUG: Generated verification OTP for ${_phoneController.text.trim()}: $verificationOTP'); // Debug print
+        debugPrint('🔢 DEBUG: Generated verification OTP for ${_phoneController.text.trim()}: $verificationOTP');
         
-        bool smsSent = await _smsService.sendVerificationSMS(
+        await _smsService.sendVerificationSMS(
           _phoneController.text.trim(),
           _nameController.text.trim(),
-          verificationOTP,
+          otp: verificationOTP,
         );
 
-        if (!smsSent) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("❌ Failed to send verification SMS"),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          return;
-        }
+        // If no exception thrown, consider SMS intent opened
 
         // Store the verification OTP in Firestore for later verification
         await FirebaseFirestore.instance

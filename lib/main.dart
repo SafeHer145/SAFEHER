@@ -9,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'screens/onboarding/tutorial_screen.dart';
 import 'theme/app_theme.dart';
+import 'l10n/app_localizations.dart';
+import 'localization/locale_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,13 +39,21 @@ class SafeHerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SafeHer - Women Safety App',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      debugShowCheckedModeBanner: false,
-      home: const AppInitializer(),
+    return ValueListenableBuilder<Locale?>(
+      valueListenable: LocaleController.instance.locale,
+      builder: (context, locale, _) {
+        return MaterialApp(
+          title: 'SafeHer - Women Safety App',
+          locale: locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: ThemeMode.system,
+          debugShowCheckedModeBanner: false,
+          home: const AppInitializer(),
+        );
+      },
     );
   }
 }

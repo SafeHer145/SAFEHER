@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:safeher/services/sms_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:safeher/services/sms_service_simple.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class SOSButton extends StatelessWidget {
@@ -9,8 +10,8 @@ class SOSButton extends StatelessWidget {
   Future<void> _sendSOS(BuildContext context) async {
     try {
       // Request permissions
-      await Permission.sms.request();
       await Permission.location.request();
+      final smsStatus = await Permission.sms.request();
 
       // Get location
       Position position = await Geolocator.getCurrentPosition(
@@ -19,14 +20,36 @@ class SOSButton extends StatelessWidget {
         ),
       );
 
-      // Use SMS service to send emergency alert
-      final smsService = SMSService();
-      await smsService.sendEmergencyAlert('current_user_id', position);
+      // Resolve current user ID from Firebase Auth
+      final user = FirebaseAuth.instance.currentUser;
+      final userId = user?.uid;
+
+      if (userId == null) {
+        throw Exception('User not authenticated. Please log in to use SOS.');
+      }
+
+      // Use SMS service (programmatic if granted, else fallback to composer)
+      final smsService = SMSServiceSimple();
+      final result = await smsService.sendEmergencyAlert(userId, position);
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("✅ SOS Sent Successfully")),
-        );
+        final auto = result.autoSent;
+        final prepared = result.prepared;
+        final granted = smsStatus.isGranted;
+        String message;
+        if (auto > 0) {
+          message = '✅ SOS sent automatically to $auto contact(s).';
+          if (prepared > 0) {
+            message += ' ✉️ Opened SMS composer for $prepared contact(s).';
+          }
+        } else if (prepared > 0) {
+          message = '✉️ SOS message opened in your SMS app for $prepared contact(s). Please tap Send.';
+        } else if (!granted) {
+          message = '⚠️ SMS permission denied. Could not auto-send. Please grant SMS permission.';
+        } else {
+          message = '⚠️ SOS could not be sent. Please try again.';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       }
     } catch (e) {
       if (context.mounted) {

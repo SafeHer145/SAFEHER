@@ -1,0 +1,14 @@
+{
+  "@@locale": "hi",
+  "appTitle": "सेफहर - महिला सुरक्षा ऐप",
+  "sos": "आपातकाल (SOS)",
+  "loginWithPhone": "फोन नंबर से लॉगिन",
+  "loginWithEmail": "ईमेल से लॉगिन",
+  "chooseLoginMethod": "अपना लॉगिन तरीका चुनें",
+  "viewInstructions": "निर्देश देखें",
+  "demoButton": "डेमो आज़माएं (बिना साइन-इन)",
+  "verifyYourEmail": "अपना ईमेल सत्यापित करें",
+  "verificationEmailSent": "हमने आपके ईमेल पर सत्यापन लिंक भेजा है। कृपया जारी रखने के लिए सत्यापित करें।",
+  "iveVerified": "मैंने सत्यापित कर लिया है",
+  "resendEmail": "ईमेल दोबारा भेजें"
+}

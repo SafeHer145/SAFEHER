@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import '../services/location_service.dart';
-import '../services/sms_service.dart';
+import '../services/sms_service_simple.dart';
 import '../add_contact_page.dart';
 import '../auth/otp_login_page.dart';
 
@@ -19,7 +19,7 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   bool _isEmergencyActive = false;
   final LocationService _locationService = LocationService();
-  final SMSService _smsService = SMSService();
+  final SMSServiceSimple _smsService = SMSServiceSimple();
 
   Future<void> _triggerSOS() async {
     if (_isEmergencyActive) return;

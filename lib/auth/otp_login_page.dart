@@ -7,6 +7,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:country_picker/country_picker.dart';
 import '../services/firebase_sms_service.dart';
 import '../dashboard/dashboard_page.dart';
+import 'login_page.dart';
 import 'dart:async';
 
 class OTPLoginPage extends StatefulWidget {
@@ -381,6 +382,25 @@ class _OTPLoginPageState extends State<OTPLoginPage> {
                     ),
                   ),
                 ),
+
+                const SizedBox(height: 12),
+
+                // Switch to Email Authentication
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginPage()),
+                      );
+                    },
+                    icon: const Icon(Icons.alternate_email),
+                    label: Text(
+                      'Use Email instead',
+                      style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
               ] else ...[
                 // OTP Verification Section
                 FadeInUp(
@@ -605,6 +625,21 @@ class _OTPLoginPageState extends State<OTPLoginPage> {
                             fontSize: 14,
                             color: Colors.grey.shade600,
                           ),
+                        ),
+                      ),
+
+                      // Switch to Email Authentication while on OTP screen
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const LoginPage()),
+                          );
+                        },
+                        icon: const Icon(Icons.alternate_email),
+                        label: Text(
+                          'Use Email instead',
+                          style: GoogleFonts.poppins(fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],

@@ -474,12 +474,6 @@ class _DashboardScreenState extends State<DashboardScreen>
     if (!locationStatus.isGranted) {
       throw Exception('Location permission is required for emergency alerts');
     }
-
-    // Request SMS permission
-    var smsStatus = await Permission.sms.request();
-    if (!smsStatus.isGranted) {
-      throw Exception('SMS permission is required to send emergency alerts');
-    }
   }
 
   void _showSuccessDialog() {

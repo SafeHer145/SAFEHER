@@ -1,0 +1,14 @@
+{
+  "@@locale": "en",
+  "appTitle": "SafeHer - Women Safety App",
+  "sos": "SOS",
+  "loginWithPhone": "Login with Phone Number",
+  "loginWithEmail": "Login with Email",
+  "chooseLoginMethod": "Choose your login method",
+  "viewInstructions": "View Instructions",
+  "demoButton": "Try DEMO (No Sign-in)",
+  "verifyYourEmail": "Verify your email",
+  "verificationEmailSent": "We've sent a verification link to your email. Please verify to continue.",
+  "iveVerified": "I've Verified",
+  "resendEmail": "Resend Email"
+}

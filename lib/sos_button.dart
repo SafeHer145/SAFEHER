@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:safeher/services/sms_service_simple.dart';
+import 'dart:async';
 import 'package:permission_handler/permission_handler.dart';
 
 class SOSButton extends StatelessWidget {
@@ -9,6 +10,12 @@ class SOSButton extends StatelessWidget {
 
   Future<void> _sendSOS(BuildContext context) async {
     try {
+      // Live counters
+      int sentCount = 0;
+      int deliveredCount = 0;
+      int failedCount = 0;
+      StreamSubscription<Map<String, dynamic>>? sub;
+
       // Request permissions
       await Permission.location.request();
       final smsStatus = await Permission.sms.request();
@@ -30,6 +37,24 @@ class SOSButton extends StatelessWidget {
 
       // Use SMS service (programmatic if granted, else fallback to composer)
       final smsService = SMSServiceSimple();
+
+      // Start listening to native SMS status events for live feedback
+      sub = smsService.smsEvents.listen((event) {
+        final ev = event['event']?.toString();
+        if (ev == 'sent') sentCount++;
+        if (ev == 'delivered') deliveredCount++;
+        if (ev == 'failed' || ev == 'undelivered') failedCount++;
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Sending SOS... Sent: $sentCount  Delivered: $deliveredCount  Failed: $failedCount'),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      });
+
       final result = await smsService.sendEmergencyAlert(userId, position);
 
       if (context.mounted) {
@@ -57,6 +82,12 @@ class SOSButton extends StatelessWidget {
           SnackBar(content: Text("❌ Error sending SOS: $e")),
         );
       }
+    } finally {
+      // Stop listening after short grace period
+      await Future.delayed(const Duration(seconds: 3));
+      try {
+        await sub?.cancel();
+      } catch (_) {}
     }
   }
 

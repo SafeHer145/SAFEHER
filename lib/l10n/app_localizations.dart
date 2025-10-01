@@ -154,6 +154,12 @@ abstract class AppLocalizations {
   /// **'We\'ve sent a verification link to your email. Please verify to continue.'**
   String get verificationEmailSent;
 
+  /// No description provided for @verificationEmailSentWithSpam.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ve sent a verification link to your email. Please verify to continue.\n\nIf you don\'t see the email in a minute, please check your Spam/Promotions folder and mark it as Not spam.'**
+  String get verificationEmailSentWithSpam;
+
   /// No description provided for @iveVerified.
   ///
   /// In en, this message translates to:
@@ -165,6 +171,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Resend Email'**
   String get resendEmail;
+
+  /// No description provided for @skip.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip'**
+  String get skip;
+
+  /// No description provided for @previous.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous'**
+  String get previous;
+
+  /// No description provided for @next.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get next;
+
+  /// No description provided for @getStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started'**
+  String get getStarted;
+
+  /// No description provided for @tutWelcomeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to SafeHer'**
+  String get tutWelcomeTitle;
+
+  /// No description provided for @tutWelcomeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Your personal safety companion that keeps you protected 24/7'**
+  String get tutWelcomeDesc;
+
+  /// No description provided for @tutRegisterTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Register & Login'**
+  String get tutRegisterTitle;
+
+  /// No description provided for @tutRegisterDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your account using phone number or email for secure access'**
+  String get tutRegisterDesc;
+
+  /// No description provided for @tutContactsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Emergency Contacts'**
+  String get tutContactsTitle;
+
+  /// No description provided for @tutContactsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Add up to 5 trusted contacts who will receive your emergency alerts'**
+  String get tutContactsDesc;
+
+  /// No description provided for @tutSosTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SOS Emergency Button'**
+  String get tutSosTitle;
+
+  /// No description provided for @tutSosDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Press the SOS button to instantly send your location to all emergency contacts'**
+  String get tutSosDesc;
+
+  /// No description provided for @tutOfflineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Offline SMS Delivery'**
+  String get tutOfflineTitle;
+
+  /// No description provided for @tutOfflineDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Emergency alerts work even without internet - SMS is sent directly to contacts'**
+  String get tutOfflineDesc;
 }
 
 class _AppLocalizationsDelegate

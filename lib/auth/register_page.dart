@@ -3,6 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../dashboard/dashboard_page.dart';
 import '../l10n/app_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
+import '../firebase_options.dart';
+import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -23,12 +26,28 @@ class _EmailVerificationScreenState extends State<_EmailVerificationScreen> {
   bool _checking = false;
 
   Future<void> _resendEmail() async {
-    final user = FirebaseAuth.instance.currentUser;
-    await user?.sendEmailVerification();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Verification email re-sent')),
+    try {
+      await FirebaseAuth.instance.setLanguageCode('en');
+      final user = FirebaseAuth.instance.currentUser;
+      await user?.sendEmailVerification(
+        ActionCodeSettings(
+          url: 'https://safeher-g546.firebaseapp.com',
+          androidInstallApp: false,
+          androidPackageName: 'com.example.safeher',
+          handleCodeInApp: false,
+        ),
       );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Verification email re-sent')),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to resend email: ${e.message ?? e.code}')),
+        );
+      }
     }
   }
 
@@ -63,7 +82,7 @@ class _EmailVerificationScreenState extends State<_EmailVerificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verify your email'),
+        title: Text(AppLocalizations.of(context)!.verifyYourEmail),
         backgroundColor: Colors.pink[300],
       ),
       body: Padding(
@@ -72,9 +91,9 @@ class _EmailVerificationScreenState extends State<_EmailVerificationScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 16),
-            const Text(
-              'We\'ve sent a verification link to your email. Please verify to continue.',
-              style: TextStyle(fontSize: 16),
+            Text(
+              AppLocalizations.of(context)!.verificationEmailSentWithSpam,
+              style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 24),
             Row(
@@ -82,12 +101,14 @@ class _EmailVerificationScreenState extends State<_EmailVerificationScreen> {
                 ElevatedButton(
                   onPressed: _checking ? null : _continueIfVerified,
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.pink[300], foregroundColor: Colors.white),
-                  child: _checking ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('I\'ve Verified'),
+                  child: _checking
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : Text(AppLocalizations.of(context)!.iveVerified),
                 ),
                 const SizedBox(width: 16),
                 TextButton(
                   onPressed: _checking ? null : _resendEmail,
-                  child: const Text('Resend Email'),
+                  child: Text(AppLocalizations.of(context)!.resendEmail),
                 )
               ],
             ),
@@ -113,14 +134,40 @@ class _RegisterPageState extends State<RegisterPage> {
       });
 
       try {
+        // Ensure Firebase is initialized (safety)
+        if (Firebase.apps.isEmpty) {
+          await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+        }
+
+        // Set email language (optional)
+        await FirebaseAuth.instance.setLanguageCode('en');
+
         UserCredential userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text.trim(),
         );
 
-        // Send email verification link
-        await userCredential.user!.sendEmailVerification();
+        // Send email verification link with ActionCodeSettings
+        try {
+          await userCredential.user!.sendEmailVerification(
+            ActionCodeSettings(
+              url: 'https://safeher-g546.firebaseapp.com', // must be an authorized domain in Firebase Auth
+              androidInstallApp: false,
+              androidPackageName: 'com.example.safeher',
+              handleCodeInApp: false, // verification handled via web is fine
+              dynamicLinkDomain: null,
+              iOSBundleId: null,
+            ),
+          );
+        } on FirebaseAuthException catch (e) {
+          // Bubble specific errors to the UI
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to send verification email: ${e.message ?? e.code}')),
+            );
+          }
+        }
 
         // Create user profile in Firestore
         await FirebaseFirestore.instance

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../auth/auth_choice_page.dart';
+import '../../l10n/app_localizations.dart';
 
 class TutorialScreen extends StatefulWidget {
   const TutorialScreen({super.key});
@@ -15,38 +16,45 @@ class _TutorialScreenState extends State<TutorialScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<TutorialPage> _pages = [
-    TutorialPage(
-      title: "Welcome to SafeHer",
-      description: "Your personal safety companion that keeps you protected 24/7",
-      icon: Icons.security_rounded,
-      color: const Color(0xFFE91E63),
-    ),
-    TutorialPage(
-      title: "Register & Login",
-      description: "Create your account using phone number or email for secure access",
-      icon: Icons.phone_android_rounded,
-      color: const Color(0xFF2196F3),
-    ),
-    TutorialPage(
-      title: "Add Emergency Contacts",
-      description: "Add up to 5 trusted contacts who will receive your emergency alerts",
-      icon: Icons.contacts_rounded,
-      color: const Color(0xFF4CAF50),
-    ),
-    TutorialPage(
-      title: "SOS Emergency Button",
-      description: "Press the SOS button to instantly send your location to all emergency contacts",
-      icon: Icons.emergency_rounded,
-      color: const Color(0xFFFF5722),
-    ),
-    TutorialPage(
-      title: "Offline SMS Delivery",
-      description: "Emergency alerts work even without internet - SMS is sent directly to contacts",
-      icon: Icons.offline_bolt_rounded,
-      color: const Color(0xFF9C27B0),
-    ),
-  ];
+  late final List<TutorialPage> _pages;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final t = AppLocalizations.of(context)!;
+    _pages = [
+      TutorialPage(
+        title: t.tutWelcomeTitle,
+        description: t.tutWelcomeDesc,
+        icon: Icons.security_rounded,
+        color: const Color(0xFFE91E63),
+      ),
+      TutorialPage(
+        title: t.tutRegisterTitle,
+        description: t.tutRegisterDesc,
+        icon: Icons.phone_android_rounded,
+        color: const Color(0xFF2196F3),
+      ),
+      TutorialPage(
+        title: t.tutContactsTitle,
+        description: t.tutContactsDesc,
+        icon: Icons.contacts_rounded,
+        color: const Color(0xFF4CAF50),
+      ),
+      TutorialPage(
+        title: t.tutSosTitle,
+        description: t.tutSosDesc,
+        icon: Icons.emergency_rounded,
+        color: const Color(0xFFFF5722),
+      ),
+      TutorialPage(
+        title: t.tutOfflineTitle,
+        description: t.tutOfflineDesc,
+        icon: Icons.offline_bolt_rounded,
+        color: const Color(0xFF9C27B0),
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +82,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                   child: TextButton(
                     onPressed: _skipTutorial,
                     child: Text(
-                      'Skip',
+                      AppLocalizations.of(context)!.skip,
                       style: GoogleFonts.poppins(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -137,7 +145,7 @@ class _TutorialScreenState extends State<TutorialScreen> {
                           side: BorderSide(color: _pages[_currentPage].color),
                           foregroundColor: _pages[_currentPage].color,
                         ),
-                        child: const Text('Previous'),
+                        child: Text(AppLocalizations.of(context)!.previous),
                       )
                     else
                       const SizedBox(width: 80),
@@ -157,8 +165,8 @@ class _TutorialScreenState extends State<TutorialScreen> {
                       ),
                       child: Text(
                         _currentPage == _pages.length - 1
-                            ? 'Get Started'
-                            : 'Next',
+                            ? AppLocalizations.of(context)!.getStarted
+                            : AppLocalizations.of(context)!.next,
                         style: GoogleFonts.poppins(
                           fontWeight: FontWeight.w600,
                         ),

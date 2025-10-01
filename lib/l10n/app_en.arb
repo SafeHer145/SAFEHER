@@ -9,6 +9,21 @@
   "demoButton": "Try DEMO (No Sign-in)",
   "verifyYourEmail": "Verify your email",
   "verificationEmailSent": "We've sent a verification link to your email. Please verify to continue.",
+  "verificationEmailSentWithSpam": "We've sent a verification link to your email. Please verify to continue.\n\nIf you don't see the email in a minute, please check your Spam/Promotions folder and mark it as Not spam.",
   "iveVerified": "I've Verified",
-  "resendEmail": "Resend Email"
+  "resendEmail": "Resend Email",
+  "skip": "Skip",
+  "previous": "Previous",
+  "next": "Next",
+  "getStarted": "Get Started",
+  "tutWelcomeTitle": "Welcome to SafeHer",
+  "tutWelcomeDesc": "Your personal safety companion that keeps you protected 24/7",
+  "tutRegisterTitle": "Register & Login",
+  "tutRegisterDesc": "Create your account using phone number or email for secure access",
+  "tutContactsTitle": "Add Emergency Contacts",
+  "tutContactsDesc": "Add up to 5 trusted contacts who will receive your emergency alerts",
+  "tutSosTitle": "SOS Emergency Button",
+  "tutSosDesc": "Press the SOS button to instantly send your location to all emergency contacts",
+  "tutOfflineTitle": "Offline SMS Delivery",
+  "tutOfflineDesc": "Emergency alerts work even without internet - SMS is sent directly to contacts"
 }

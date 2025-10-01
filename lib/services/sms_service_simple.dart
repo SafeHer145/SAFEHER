@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,29 @@ import 'package:permission_handler/permission_handler.dart';
 class SMSServiceSimple {
   // Programmatic SMS channel (Android only)
   static const MethodChannel _smsChannel = MethodChannel('safeher/sms');
+  static const EventChannel _smsEventsChannel = EventChannel('safeher/sms_events');
+
+  // Broadcast stream of native SMS events: {event: sent|delivered|failed|undelivered, phone, id, errorCode?}
+  static final StreamController<Map<String, dynamic>> _eventsController = StreamController.broadcast();
+  static bool _eventsInitialized = false;
+
+  static void _ensureEventListening() {
+    if (_eventsInitialized) return;
+    _eventsInitialized = true;
+    _smsEventsChannel.receiveBroadcastStream().listen((dynamic data) {
+      if (data is Map) {
+        final mapped = data.map((key, value) => MapEntry(key.toString(), value));
+        _eventsController.add(mapped);
+      }
+    }, onError: (e) {
+      debugPrint('❌ SMS events stream error: $e');
+    });
+  }
+
+  Stream<Map<String, dynamic>> get smsEvents {
+    _ensureEventListening();
+    return _eventsController.stream;
+  }
   
   /// Request SMS permissions
   Future<bool> requestSMSPermission() async {
@@ -25,11 +49,12 @@ class SMSServiceSimple {
     }
   }
 
-  Future<bool> _sendProgrammaticSMS(String phone, String message) async {
+  Future<bool> _sendProgrammaticSMS(String phone, String message, {String? messageId}) async {
     try {
       final bool? ok = await _smsChannel.invokeMethod('sendSMS', {
         'phone': phone,
         'message': message,
+        'messageId': messageId,
       });
       return ok == true;
     } catch (e) {
@@ -56,6 +81,26 @@ class SMSServiceSimple {
       final emergencyMessage = _createEmergencyMessage(position);
       debugPrint('📝 Emergency message created: $emergencyMessage');
 
+      // Prepare event listening
+      _ensureEventListening();
+      final Map<String, String> pendingIdsByPhone = {};
+      int deliveredCount = 0;
+
+      final sub = _eventsController.stream.listen((event) {
+        final ev = event['event']?.toString();
+        final phoneEv = event['phone']?.toString();
+        if (phoneEv != null) {
+          if (ev == 'delivered') {
+            deliveredCount++;
+            debugPrint('📬 Delivered to $phoneEv');
+          } else if (ev == 'sent') {
+            debugPrint('📤 Sent to $phoneEv');
+          } else if (ev == 'failed' || ev == 'undelivered') {
+            debugPrint('⚠️ $ev to $phoneEv');
+          }
+        }
+      });
+
       // Send SMS to each contact (programmatic first, then fallback)
       int successCount = 0;
       int preparedCount = 0; // messages opened in SMS app but not auto-sent
@@ -64,10 +109,12 @@ class SMSServiceSimple {
           final phone = contact['phone'];
           final name = contact['name'] ?? 'Contact';
           final message = emergencyMessage;
+          final msgId = '${userId}_${phone}_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999)}';
+          pendingIdsByPhone[phone] = msgId;
           // Try programmatic send first if permission granted
           bool sent = false;
           if (await Permission.sms.isGranted || await requestSMSPermission()) {
-            sent = await _sendProgrammaticSMS(phone, message);
+            sent = await _sendProgrammaticSMS(phone, message, messageId: msgId);
           }
           if (!sent) {
             // Fallback: open SMS composer. We do not count as sent since user must tap send.
@@ -88,7 +135,11 @@ class SMSServiceSimple {
       // Log the alert in Firestore
       await _logAlert(userId, position, contacts.length, successCount, preparedCount);
       
-      // Return both counts so caller can show accurate status
+      // Small delay to allow final delivered callbacks
+      await Future.delayed(const Duration(seconds: 2));
+      await sub.cancel();
+
+      // Return counts so caller can show accurate status (delivered is best-effort)
       return (autoSent: successCount, prepared: preparedCount);
       
     } catch (e) {
@@ -101,9 +152,11 @@ class SMSServiceSimple {
   Future<void> sendVerificationSMS(String phoneNumber, String contactName, {String? otp}) async {
     try {
       final code = otp ?? _generateOTP();
-      final message = 'SafeHer Verification: Your contact $contactName has added you as an emergency contact. '
-                     'Your verification code is: $code. Reply with this code to confirm. '
-                     'This ensures you can receive emergency alerts if needed.';
+      final message = 'SafeHer — Emergency Contact Verification\n\n'
+          'Hello, this is SafeHer. The user who owns this phone is adding you as a trusted emergency contact.\n\n'
+          'Verification Code: $code\n\n'
+          'Disclaimer: Reply with this code ONLY if you recognize this person/number and agree to receive their emergency SMS alerts. '
+          'If you do not know this person or did not expect this message, please ignore it.';
       
       // Try programmatic first, fallback to url_launcher
       bool sent = false;

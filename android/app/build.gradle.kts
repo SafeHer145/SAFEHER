@@ -50,5 +50,6 @@ dependencies {
     implementation("com.google.firebase:firebase-auth")
 
     // (Optional) If you use Play Services for safety checks
+    implementation("com.google.android.gms:play-services-auth-api-phone:18.0.1")
 
 }

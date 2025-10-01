@@ -53,7 +53,8 @@ SafeHer is a production-ready women's safety mobile app built with Flutter, Fire
 ```bash
 git clone <repository-url>
 cd SafeHer/safeher
-flutter pub get
+flutter pub 
+get
 ```
 
 ### 2. Firebase Configuration

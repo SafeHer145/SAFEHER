@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/sms_service_simple.dart';
+import '../../services/contact_verification_service.dart';
 import 'add_contact_screen.dart';
 
 class ContactsScreen extends StatefulWidget {
@@ -212,6 +213,15 @@ class _ContactsScreenState extends State<ContactsScreen> {
                     ],
                   ),
                 ),
+                if (!isVerified)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: IconButton(
+                      tooltip: 'Verify Contact',
+                      icon: const Icon(Icons.check_circle, color: Colors.green),
+                      onPressed: () => _sendVerification(contactId, data),
+                    ),
+                  ),
                 PopupMenuButton<String>(
                   onSelected: (value) => _handleMenuAction(value, contactId, data),
                   itemBuilder: (context) => [
@@ -313,44 +323,56 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
   Future<void> _sendVerification(String contactId, Map<String, dynamic> contact) async {
     try {
-      final otp = _smsService.generateOTP();
-      
-      // Send verification SMS
-      await _smsService.sendVerificationSMS(
-        contact['phone'],
-        contact['name'],
-        otp: otp,
+      // 1) Try to fetch existing OTP from Firestore and print it
+      final existing = await ContactVerificationService.instance.fetchAndLogOtp(
+        userId: widget.userId,
+        contactId: contactId,
       );
-      
-      // Update contact with OTP in Firestore
+
+      if (existing != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Existing OTP printed in console for ${contact['name']}'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        return;
+      }
+
+      // 2) Start verification (generates + stores OTP, sends SMS, and starts consent). Also logs OTP.
+      final autoVerified = await ContactVerificationService.instance.startVerification(
+        userId: widget.userId,
+        contactId: contactId,
+        contactName: contact['name'] ?? 'Contact',
+        phone: contact['phone'] ?? '',
+      );
+
+      // 3) Notify developer/user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(autoVerified
+                ? 'Contact auto-verified from SMS consent for ${contact['name']}'
+                : 'OTP generated + SMS sent. OTP printed in console for ${contact['name']}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+
+      // Optional: update local UI status immediately
       await FirebaseFirestore.instance
           .collection('users')
           .doc(widget.userId)
           .collection('contacts')
           .doc(contactId)
-          .update({
-        'verificationOTP': otp,
-        'otpSentAt': FieldValue.serverTimestamp(),
-      });
-
-      // Show verification dialog/information
-      if (mounted) {
-        _showVerificationDialog(context, contact, otp);
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Verification SMS sent to ${contact['name']}'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+          .set({'verificationStatus': autoVerified ? 'verified' : 'pending', 'verified': autoVerified}, SetOptions(merge: true));
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send verification SMS: $e'),
+            content: Text('Failed to start verification: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -358,25 +380,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
     }
   }
 
-  void _showVerificationDialog(BuildContext context, Map<String, dynamic> contact, String otp) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Verification Sent'),
-        content: Text(
-          'An OTP has been sent to ${contact['name']} (${contact['phone']}).\n\n'
-          'Ask them to share the code with you so you can verify this contact.\n\n'
-          'For testing, OTP: $otp',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
+  // Removed manual OTP dialog to avoid exposing OTP to main user. Verification is auto-only via SMS reply.
 
   void _deleteContact(String contactId, String name) {
     showDialog(

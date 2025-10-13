@@ -16,7 +16,15 @@ class RegisterPage extends StatefulWidget {
 
 class _EmailVerificationScreen extends StatefulWidget {
   final String userId;
-  const _EmailVerificationScreen({required this.userId});
+  final String name;
+  final String email;
+  final String phone;
+  const _EmailVerificationScreen({
+    required this.userId,
+    required this.name,
+    required this.email,
+    required this.phone,
+  });
 
   @override
   State<_EmailVerificationScreen> createState() => _EmailVerificationScreenState();
@@ -56,11 +64,20 @@ class _EmailVerificationScreenState extends State<_EmailVerificationScreen> {
     await FirebaseAuth.instance.currentUser?.reload();
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && user.emailVerified) {
-      // Update Firestore flag
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.userId)
-          .update({'emailVerified': true});
+      // Create user profile in Firestore ONLY now (post verification)
+      final userDoc = FirebaseFirestore.instance.collection('users').doc(widget.userId);
+      final snapshot = await userDoc.get();
+      if (!snapshot.exists) {
+        await userDoc.set({
+          'name': widget.name.trim(),
+          'email': widget.email.trim(),
+          'phone': widget.phone.trim(),
+          'createdAt': FieldValue.serverTimestamp(),
+          'emailVerified': true,
+        });
+      } else {
+        await userDoc.set({'emailVerified': true}, SetOptions(merge: true));
+      }
 
       if (mounted) {
         Navigator.pushReplacement(
@@ -169,24 +186,17 @@ class _RegisterPageState extends State<RegisterPage> {
           }
         }
 
-        // Create user profile in Firestore
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userCredential.user!.uid)
-            .set({
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          'createdAt': FieldValue.serverTimestamp(),
-          'emailVerified': false,
-        });
-
         // Navigate to email verification screen
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => _EmailVerificationScreen(userId: userCredential.user!.uid),
+              builder: (context) => _EmailVerificationScreen(
+                userId: userCredential.user!.uid,
+                name: _nameController.text.trim(),
+                email: _emailController.text.trim(),
+                phone: _phoneController.text.trim(),
+              ),
             ),
           );
         }

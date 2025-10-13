@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'sms_service_simple.dart';
+import 'verification_api_client.dart';
 
 class ContactVerificationService {
   ContactVerificationService._();
@@ -23,68 +24,47 @@ class ContactVerificationService {
     required String phone,
     Duration timeout = const Duration(minutes: 2),
   }) async {
-    final sms = SMSServiceSimple();
-
-    // 1) Generate and store OTP
-    final otp = sms.generateOTP();
-    debugPrint('🔐 Generated OTP for contactId=$contactId, phone=$phone -> $otp');
-    print('🔐 Generated OTP for contactId=$contactId, phone=$phone -> $otp');
+    // Twilio Verify flow: call backend to send code, then wait for Firestore status to flip to 'verified'
     final now = DateTime.now();
-    final expiresAt = now.add(const Duration(minutes: 10));
-
     final docRef = FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
         .collection('contacts')
         .doc(contactId);
 
+    // Mark pending in Firestore for UI
     await docRef.set({
       'verificationStatus': 'pending',
-      'otp': otp,
-      'otpExpiresAt': Timestamp.fromDate(expiresAt),
+      'verified': false,
       'lastVerificationAttemptAt': Timestamp.fromDate(now),
     }, SetOptions(merge: true));
 
-    // Read-back and log the stored OTP so it always reflects DB state
+    // Start Verify via backend
     try {
-      final snapCheck = await docRef.get();
-      final dataCheck = snapCheck.data();
-      final dbOtp = dataCheck != null ? dataCheck['otp']?.toString() : null;
-      debugPrint('📦 Firestore stored OTP for contactId=$contactId -> ${dbOtp ?? 'null'}');
-      print('📦 Firestore stored OTP for contactId=$contactId -> ${dbOtp ?? 'null'}');
+      await const VerificationApiClient().startVerify(phone: phone, userId: userId, contactId: contactId);
     } catch (e) {
-      debugPrint('⚠️ Could not read-back OTP from Firestore: $e');
+      debugPrint('❌ verify/start failed: $e');
+      return false;
     }
 
-    // 2) Send SMS with disclaimer + OTP
-    await sms.sendVerificationSMS(phone, contactName, otp: otp);
+    // Listen for status change to verified with timeout
+    final completer = Completer<bool>();
+    final sub = docRef.snapshots().listen((snap) {
+      final data = snap.data();
+      final status = data?['verificationStatus']?.toString();
+      if (status == 'verified' || data?['verified'] == true) {
+        if (!completer.isCompleted) completer.complete(true);
+      }
+    }, onError: (_) {
+      if (!completer.isCompleted) completer.complete(false);
+    });
 
-    // 3) Start SMS User Consent and wait for reply
     try {
-      final completer = Completer<bool>();
-
-      // Start listening; returns message string on success
-      Future<void>.microtask(() async {
-        try {
-          final dynamic msg = await _smsChannel.invokeMethod('startSmsUserConsent');
-          // If the platform returns immediately with a message, handle it
-          _handleIncomingMessage(userId, contactId, msg?.toString()).then(completer.complete).catchError((e) {
-            completer.complete(false);
-          });
-        } on PlatformException catch (_) {
-          // Could not start consent; still allow manual flow
-          completer.complete(false);
-        }
-      });
-
-      // Also set a timeout to avoid waiting forever
-      final verified = await completer.future.timeout(timeout, onTimeout: () => false);
-      // Stop listening regardless
-      await stopListening();
-      return verified;
-    } catch (e) {
-      debugPrint('Contact verification consent error: $e');
-      await stopListening();
+      final ok = await completer.future.timeout(timeout, onTimeout: () => false);
+      await sub.cancel();
+      return ok;
+    } catch (_) {
+      await sub.cancel();
       return false;
     }
   }
@@ -102,6 +82,7 @@ class ContactVerificationService {
     required String contactId,
     required String code,
   }) async {
+    // Use Twilio Verify check via backend. We need the contact phone from Firestore.
     final docRef = FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
@@ -111,16 +92,21 @@ class ContactVerificationService {
     final snap = await docRef.get();
     if (!snap.exists) return false;
     final data = snap.data() as Map<String, dynamic>;
-    final otp = data['otp']?.toString();
-    final Timestamp? expTs = data['otpExpiresAt'];
-    final expiresAt = expTs?.toDate();
+    final String? phone = data['phone']?.toString();
+    if (phone == null || phone.isEmpty) return false;
 
-    if (otp == null || expiresAt == null) return false;
-    if (DateTime.now().isAfter(expiresAt)) return false;
-    if (otp != code.trim()) return false;
-
-    await _markVerified(docRef);
-    return true;
+    try {
+      final ok = await const VerificationApiClient().checkVerify(
+        phone: phone,
+        code: code.trim(),
+        userId: userId,
+        contactId: contactId,
+      );
+      return ok;
+    } catch (e) {
+      debugPrint('❌ verify/check failed: $e');
+      return false;
+    }
   }
 
   /// Internal: handle an incoming SMS message captured via consent

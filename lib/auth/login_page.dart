@@ -29,11 +29,30 @@ class _LoginPageState extends State<LoginPage> {
           password: _passwordController.text.trim(),
         );
 
+        // Ensure latest verification status
+        await userCredential.user?.reload();
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) {
+          throw FirebaseAuthException(code: 'user-null', message: 'User not available after sign-in');
+        }
+
+        if (!user.emailVerified) {
+          // Prevent access until email is verified
+          try { await user.sendEmailVerification(); } catch (_) {}
+          await FirebaseAuth.instance.signOut();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please verify your email address before logging in. Verification link sent.')),
+            );
+          }
+          return;
+        }
+
         if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) => DashboardPage(userId: userCredential.user!.uid),
+              builder: (context) => DashboardPage(userId: user.uid),
             ),
           );
         }

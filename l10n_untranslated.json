@@ -1,0 +1,35 @@
+{
+  "hi": [
+    "skip",
+    "previous",
+    "next",
+    "getStarted",
+    "tutWelcomeTitle",
+    "tutWelcomeDesc",
+    "tutRegisterTitle",
+    "tutRegisterDesc",
+    "tutContactsTitle",
+    "tutContactsDesc",
+    "tutSosTitle",
+    "tutSosDesc",
+    "tutOfflineTitle",
+    "tutOfflineDesc"
+  ],
+
+  "te": [
+    "skip",
+    "previous",
+    "next",
+    "getStarted",
+    "tutWelcomeTitle",
+    "tutWelcomeDesc",
+    "tutRegisterTitle",
+    "tutRegisterDesc",
+    "tutContactsTitle",
+    "tutContactsDesc",
+    "tutSosTitle",
+    "tutSosDesc",
+    "tutOfflineTitle",
+    "tutOfflineDesc"
+  ]
+}

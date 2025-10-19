@@ -170,7 +170,7 @@ lib/
 │   ├── sms_service_simple.dart      # SMS functionality
 │   └── location_service.dart         # GPS location services
 └── config/
-    └── twilio_config.dart            # Twilio config (optional)
+    └── (optional config files)
 ```
 
 ## 🔧 Key Dependencies

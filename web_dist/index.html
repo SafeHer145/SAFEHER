@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SafeHer – Women’s Safety App</title>
+  <meta name="description" content="SafeHer is a women’s safety app with SOS SMS, verified contacts, and offline-first design." />
+  <link rel="icon" href="data:," />
+  <style>
+    :root { --pink:#ec407a; --bg:#0f0f12; --fg:#f6f7fb; --muted:#a9adba; }
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--fg)}
+    header{padding:32px 16px;text-align:center;background:linear-gradient(180deg, rgba(236,64,122,.15), transparent)}
+    h1{margin:8px 0 4px;font-size:28px}
+    p{margin:8px 0;color:var(--muted)}
+    .container{max-width:900px;margin:0 auto;padding:24px 16px}
+    .card{background:#15161b;border:1px solid #242632;border-radius:14px;padding:20px;margin:12px 0}
+    .btn{display:inline-block;padding:14px 18px;border-radius:10px;background:var(--pink);color:white;text-decoration:none;font-weight:600}
+    .cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    code{background:#1a1c24;padding:2px 6px;border-radius:6px}
+    footer{padding:24px 16px;color:#8f95a4;text-align:center;border-top:1px solid #242632;margin-top:24px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>SafeHer – Women’s Safety App</h1>
+    <p>Emergency SOS via native SMS with GPS location. Verified contacts. Offline‑first.</p>
+    <div class="cta" style="justify-content:center;margin-top:16px">
+      <a class="btn" href="app-release.apk" download>Download Android APK</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <h2>About</h2>
+      <p>SafeHer enables quick SOS to up to five verified contacts via native SMS, including your live GPS location as a Google Maps link. Core flows work without internet. Email verification is required before account use.</p>
+    </section>
+
+    <section class="card">
+      <h2>How to Install</h2>
+      <ol>
+        <li>Tap <strong>Download Android APK</strong> above.</li>
+        <li>On your phone, allow installs from your browser (Unknown sources).</li>
+        <li>Open the downloaded APK and follow the install prompts.</li>
+      </ol>
+    </section>
+
+    <section class="card">
+      <h2>Key Features</h2>
+      <ul>
+        <li>SOS SMS with GPS location</li>
+        <li>Add and verify up to 5 contacts</li>
+        <li>Offline‑first design (native SMS works without internet)</li>
+        <li>Firebase Auth + Firestore logging</li>
+        <li>English, Hindi, Telugu</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>Demo Video</h2>
+      <p>Provide an unlisted video URL and we’ll embed it here. Replace the <code>&lt;iframe&gt;</code> below with your link.</p>
+      <div style="position:relative;padding-top:56.25%">
+        <iframe src="about:blank" title="Demo Video" allowfullscreen style="position:absolute;inset:0;border:0;width:100%;height:100%;background:#0b0c10"></iframe>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Support</h2>
+      <p>For help, contact <a href="mailto:support@safeher.app">support@safeher.app</a>.</p>
+    </section>
+  </main>
+
+  <footer>
+    <small>© <span id="year"></span> SafeHer. All rights reserved.</small>
+  </footer>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>

@@ -5,6 +5,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.EventChannel
 import android.telephony.SmsManager
+import android.telephony.SubscriptionManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,9 @@ import android.content.IntentFilter
 import com.google.android.gms.auth.api.phone.SmsRetriever
 import android.app.Activity
 import android.app.PendingIntent
+import android.app.role.RoleManager
+import android.os.Build
+import android.provider.Telephony
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "safeher/sms"
@@ -47,12 +51,31 @@ class MainActivity : FlutterActivity() {
                     val phone: String? = call.argument("phone")
                     val message: String? = call.argument("message")
                     val messageId: String? = call.argument("messageId")
+                    val subIdArg: Int? = call.argument("subscriptionId")
                     if (phone.isNullOrBlank() || message.isNullOrBlank()) {
                         result.error("INVALID_ARGS", "phone and message are required", null)
                         return@setMethodCallHandler
                     }
                     try {
-                        val sms = SmsManager.getDefault()
+                        val sms = try {
+                            val sm = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
+                            val resolvedId = subIdArg ?: run {
+                                val defaultId = SubscriptionManager.getDefaultSmsSubscriptionId()
+                                if (defaultId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+                                    defaultId
+                                } else {
+                                    val list = sm.activeSubscriptionInfoList
+                                    if (list != null && list.isNotEmpty()) list[0].subscriptionId else SubscriptionManager.INVALID_SUBSCRIPTION_ID
+                                }
+                            }
+                            if (resolvedId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
+                                SmsManager.getSmsManagerForSubscriptionId(resolvedId)
+                            } else {
+                                SmsManager.getDefault()
+                            }
+                        } catch (e: Exception) {
+                            SmsManager.getDefault()
+                        }
                         val parts = sms.divideMessage(message)
                         val sentIntent = Intent(ACTION_SMS_SENT).apply {
                             putExtra("phone", phone)
@@ -80,6 +103,22 @@ class MainActivity : FlutterActivity() {
                         result.error("SMS_FAILED", e.localizedMessage, null)
                     }
                 }
+                "getActiveSmsSubscriptions" -> {
+                    try {
+                        val sm = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
+                        val list = sm.activeSubscriptionInfoList
+                        val mapped = list?.map {
+                            mapOf(
+                                "id" to it.subscriptionId,
+                                "displayName" to (it.displayName?.toString() ?: "SIM"),
+                                "number" to (it.number ?: "")
+                            )
+                        } ?: emptyList<Map<String, Any>>()
+                        result.success(mapped)
+                    } catch (e: Exception) {
+                        result.error("SUBS_ERROR", e.localizedMessage, null)
+                    }
+                }
                 "startSmsUserConsent" -> {
                     if (pendingConsentResult != null) {
                         result.error("ALREADY_LISTENING", "SMS consent already in progress", null)
@@ -102,6 +141,52 @@ class MainActivity : FlutterActivity() {
                 "stopSmsUserConsent" -> {
                     unregisterConsentReceiver()
                     result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        // Role channel for requesting/checking default SMS app role
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "safeher/sms_role").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isDefaultSmsApp" -> {
+                    try {
+                        val pkg = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) Telephony.Sms.getDefaultSmsPackage(this) else null
+                        result.success(pkg == packageName)
+                    } catch (e: Exception) {
+                        result.error("ROLE_ERROR", e.localizedMessage, null)
+                    }
+                }
+                "getDefaultSmsPackage" -> {
+                    try {
+                        val pkg = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) Telephony.Sms.getDefaultSmsPackage(this) else null
+                        result.success(pkg ?: "")
+                    } catch (e: Exception) {
+                        result.error("ROLE_ERROR", e.localizedMessage, null)
+                    }
+                }
+                "requestDefaultSmsRole" -> {
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            val roleManager = getSystemService(RoleManager::class.java)
+                            if (roleManager.isRoleAvailable(RoleManager.ROLE_SMS)) {
+                                val intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS)
+                                startActivity(intent)
+                                result.success(true)
+                            } else {
+                                result.error("ROLE_UNAVAILABLE", "ROLE_SMS not available", null)
+                            }
+                        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                            val intent = Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT)
+                            intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME, packageName)
+                            startActivity(intent)
+                            result.success(true)
+                        } else {
+                            result.error("ROLE_UNSUPPORTED", "Android version too low", null)
+                        }
+                    } catch (e: Exception) {
+                        result.error("ROLE_REQUEST_ERROR", e.localizedMessage, null)
+                    }
                 }
                 else -> result.notImplemented()
             }

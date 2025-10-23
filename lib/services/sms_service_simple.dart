@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'sms_role_service.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -36,6 +37,15 @@ class SMSServiceSimple {
     return _eventsController.stream;
   }
   
+  String _normalizePhone(String phone) {
+    final raw = phone.replaceAll(RegExp(r'[^\d+]'), '');
+    if (raw.startsWith('+')) return raw;
+    final digits = raw.replaceAll(RegExp(r'[^\d]'), '');
+    if (digits.length == 10) return '+91$digits';
+    if (digits.startsWith('0') && digits.length == 11) return '+91${digits.substring(1)}';
+    return '+$digits';
+  }
+
   /// Request SMS permissions
   Future<bool> requestSMSPermission() async {
     try {
@@ -51,8 +61,9 @@ class SMSServiceSimple {
 
   Future<bool> _sendProgrammaticSMS(String phone, String message, {String? messageId}) async {
     try {
+      final normalized = _normalizePhone(phone);
       final bool? ok = await _smsChannel.invokeMethod('sendSMS', {
-        'phone': phone,
+        'phone': normalized,
         'message': message,
         'messageId': messageId,
       });
@@ -70,6 +81,10 @@ class SMSServiceSimple {
   Future<({int autoSent, int prepared})> sendEmergencyAlert(String userId, Position position) async {
     try {
       debugPrint('🚨 Starting emergency alert process...');
+      // Ensure we are the default SMS app to maximize background delivery reliability
+      try {
+        await SMSRoleService().ensureDefaultSmsAppIfNeeded();
+      } catch (_) {}
       
       // Get verified contacts
       final contacts = await _getVerifiedContacts(userId);
@@ -153,20 +168,52 @@ class SMSServiceSimple {
     try {
       final code = otp ?? _generateOTP();
       final message = 'SafeHer — Emergency Contact Verification\n\n'
-          'Hello, this is SafeHer. The user who owns this phone is adding you as a trusted emergency contact.\n\n'
           'Verification Code: $code\n\n'
-          'Disclaimer: Reply with this code ONLY if you recognize this person/number and agree to receive their emergency SMS alerts. '
-          'If you do not know this person or did not expect this message, please ignore it.';
+          'Reply with this code ONLY if you recognize the sender and agree to receive emergency SMS alerts.';
       
-      // Try programmatic first, fallback to url_launcher
+      // Ensure we are listening for native sent/delivered/failed events
+      _ensureEventListening();
+
+      // Ensure we are the default SMS app to permit reliable background sending where required
+      try {
+        await SMSRoleService().ensureDefaultSmsAppIfNeeded();
+      } catch (_) {}
+
+      // Try programmatic first with tracking, fallback to url_launcher on failure or timeout
       bool sent = false;
+      String msgId = 'verify_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999)}';
+      StreamSubscription<Map<String, dynamic>>? sub;
+      final completer = Completer<String>(); // 'sent' | 'delivered' | 'failed' | 'undelivered'
+      try {
+        sub = _eventsController.stream.listen((event) {
+          final id = (event['id'] ?? '').toString();
+          if (id == msgId) {
+            completer.complete((event['event'] ?? '').toString());
+          }
+        });
+      } catch (_) {}
+
       if (await Permission.sms.isGranted || await requestSMSPermission()) {
-        sent = await _sendProgrammaticSMS(phoneNumber, message);
+        sent = await _sendProgrammaticSMS(phoneNumber, message, messageId: msgId);
       }
-      if (!sent) {
+
+      if (sent) {
+        // Wait up to 8s for a status; if failure or no callback, we will fallback to composer
+        String status = '';
+        try {
+          status = await completer.future.timeout(const Duration(seconds: 8));
+        } catch (_) {}
+        if (status == 'failed' || status == 'undelivered' || status.isEmpty) {
+          await _sendSMSViaUrlLauncher(phoneNumber, message);
+          debugPrint('↩️ Fallback to SMS composer for verification');
+        } else {
+          debugPrint('✅ Programmatic verification SMS acknowledged: $status');
+        }
+      } else {
         await _sendSMSViaUrlLauncher(phoneNumber, message);
       }
-      debugPrint('✅ Verification SMS sent to $contactName ($phoneNumber)');
+      await sub?.cancel();
+      debugPrint('✅ Verification SMS initiated for $contactName ($phoneNumber)');
       
     } catch (e) {
       debugPrint('❌ Failed to send verification SMS: $e');
@@ -177,8 +224,7 @@ class SMSServiceSimple {
   /// Send SMS using url_launcher (opens native SMS app)
   Future<void> _sendSMSViaUrlLauncher(String phoneNumber, String message) async {
     try {
-      // Clean phone number
-      final cleanPhone = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+      final cleanPhone = _normalizePhone(phoneNumber);
       
       // Create SMS URL
       final smsUrl = 'sms:$cleanPhone?body=${Uri.encodeComponent(message)}';

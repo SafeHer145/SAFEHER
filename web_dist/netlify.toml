@@ -1,0 +1,14 @@
+[build]
+  publish = "."
+
+# Basic caching for static assets
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=600"
+
+# Enable proper range requests for media playback (Netlify handles this by default)
+[[headers]]
+  for = "/video/*"
+  [headers.values]
+    Accept-Ranges = "bytes"

@@ -85,6 +85,14 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   integration_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  image_path: assets/icon/app_icon.png
+  adaptive_icon_background: "#EC407A"
+  # If you have a transparent foreground for adaptive icons, uncomment below and set the path
+  # adaptive_icon_foreground: assets/icon/fg.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

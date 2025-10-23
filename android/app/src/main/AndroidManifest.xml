@@ -6,6 +6,10 @@
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <!-- For automated SMS sending (programmatic) -->
     <uses-permission android:name="android.permission.SEND_SMS" />
+    <!-- For default SMS app role (receiving/reading/writing SMS) -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.WRITE_SMS" />
     
     <!-- Phone Permissions -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
@@ -48,7 +52,45 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        
+
+        <!-- Respond via message activity (minimal stub) -->
+        <activity
+            android:name=".sms.RespondViaMessageActivity"
+            android:exported="true"
+            android:permission="android.permission.SEND_RESPOND_VIA_MESSAGE"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.RESPOND_VIA_MESSAGE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="sms" />
+                <data android:scheme="smsto" />
+                <data android:scheme="mms" />
+                <data android:scheme="mmsto" />
+            </intent-filter>
+        </activity>
+
+        <!-- SMS receive (required for default SMS role) -->
+        <receiver
+            android:name=".sms.SmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_DELIVER" />
+            </intent-filter>
+        </receiver>
+
+        <!-- MMS receive (required for default SMS role) -->
+        <receiver
+            android:name=".sms.MmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_WAP_PUSH">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.WAP_PUSH_DELIVER" />
+                <data android:mimeType="application/vnd.wap.mms-message" />
+            </intent-filter>
+        </receiver>
+
         <!-- Firebase Phone Auth Activity -->
         <activity
             android:name="com.google.firebase.auth.internal.RecaptchaActivity"

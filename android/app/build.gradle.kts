@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android") // ✅ this is the correct plugin id for Kotlin DSL
@@ -29,9 +32,34 @@ android {
         multiDexEnabled = true
     }
 
+    // Load keystore properties if present (for release signing)
+    val keystorePropsFile = rootProject.file("key.properties")
+    val keystoreProps = Properties()
+    if (keystorePropsFile.exists()) {
+        keystoreProps.load(FileInputStream(keystorePropsFile))
+    }
+
+    signingConfigs {
+        create("release") {
+            if (keystorePropsFile.exists()) {
+                keyAlias = (keystoreProps["keyAlias"] as String?) ?: ""
+                keyPassword = (keystoreProps["keyPassword"] as String?) ?: ""
+                val storePath = (keystoreProps["storeFile"] as String?) ?: ""
+                if (storePath.isNotEmpty()) {
+                    storeFile = file(storePath)
+                }
+                storePassword = (keystoreProps["storePassword"] as String?) ?: ""
+            }
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            // Use real release signing if key.properties exists, otherwise fall back to debug for local builds
+            signingConfig = if (keystorePropsFile.exists()) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
+            // Explicitly disable shrink/obfuscation to avoid R8 mapping.txt locks on Windows during CI/local builds
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

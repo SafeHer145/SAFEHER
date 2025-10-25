@@ -91,6 +91,7 @@ flutter_launcher_icons:
   android: true
   image_path: assets/icon/app_icon.png
   adaptive_icon_background: "#EC407A"
+  adaptive_icon_foreground: assets/icon/app_icon.png
   # If you have a transparent foreground for adaptive icons, uncomment below and set the path
   # adaptive_icon_foreground: assets/icon/fg.png
 
@@ -107,6 +108,9 @@ flutter:
 
   # Enable Flutter gen_l10n (uses lib/l10n/*.arb)
   generate: true
+
+  assets:
+    - assets/icon/app_icon.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

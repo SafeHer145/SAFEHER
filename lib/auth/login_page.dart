@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../dashboard/dashboard_page.dart';
 import 'register_page.dart';
 
@@ -43,6 +44,41 @@ class _LoginPageState extends State<LoginPage> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Please verify your email address before logging in. Verification link sent.')),
+            );
+          }
+          return;
+        }
+
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        if (!userDoc.exists) {
+          await FirebaseAuth.instance.signOut();
+          if (mounted) {
+            final goRegister = await showDialog<bool>(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('No account found'),
+                content: const Text('This email is not registered. Would you like to create an account?'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                  TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Register')),
+                ],
+              ),
+            );
+            if (goRegister == true) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const RegisterPage()),
+              );
+            }
+          }
+          return;
+        }
+
+        if (userDoc.data()?['isActive'] == false) {
+          await FirebaseAuth.instance.signOut();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Your account has been removed or is inactive. Please contact support.')),
             );
           }
           return;

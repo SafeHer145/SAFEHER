@@ -29,7 +29,27 @@ class AuthService {
         email: email,
         password: password,
       );
-      
+      // Reload to ensure latest state
+      await userCredential.user?.reload();
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw FirebaseAuthException(code: 'user-null', message: 'User not available after sign-in');
+      }
+
+      // Enforce email verification
+      if (!user.emailVerified) {
+        try { await user.sendEmailVerification(); } catch (_) {}
+        await _auth.signOut();
+        throw FirebaseAuthException(code: 'email-not-verified', message: 'Please verify your email before logging in.');
+      }
+
+      // Ensure Firestore user exists and is active
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (!userDoc.exists || (userDoc.data()?['isActive'] == false)) {
+        await _auth.signOut();
+        throw FirebaseAuthException(code: 'user-inactive', message: 'Your account has been removed or is inactive.');
+      }
+
       debugPrint('✅ Email sign-in successful');
       return userCredential;
     } on FirebaseAuthException catch (e) {

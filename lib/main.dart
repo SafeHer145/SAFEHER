@@ -11,6 +11,7 @@ import 'screens/onboarding/tutorial_screen.dart';
 import 'theme/app_theme.dart';
 import 'l10n/app_localizations.dart';
 import 'localization/locale_controller.dart';
+import 'splash/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,6 +35,33 @@ void main() async {
   runApp(const SafeHerApp());
 }
 
+class SplashHost extends StatefulWidget {
+  const SplashHost({super.key});
+
+  @override
+  State<SplashHost> createState() => _SplashHostState();
+}
+
+class _SplashHostState extends State<SplashHost> {
+  bool _started = false;
+
+  void _goNext() {
+    if (_started) return;
+    _started = true;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const AppInitializer()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SplashScreen(
+      duration: const Duration(milliseconds: 1600),
+      onDone: _goNext,
+    );
+  }
+}
+
 class SafeHerApp extends StatelessWidget {
   const SafeHerApp({super.key});
 
@@ -51,7 +79,7 @@ class SafeHerApp extends StatelessWidget {
           darkTheme: AppTheme.darkTheme,
           themeMode: ThemeMode.system,
           debugShowCheckedModeBanner: false,
-          home: const AppInitializer(),
+          home: const SplashHost(),
         );
       },
     );
